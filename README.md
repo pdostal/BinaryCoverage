@@ -1,4 +1,3 @@
-[日本語のREADMEはこちら](https://github.com/simotin13/CodeCoverage/blob/main/README-ja.md)
 
 # What is this ?
 This repository is a code coverage tool that utilizes [Pin](https://www.intel.com/content/www/us/en/developer/articles/tool/pin-a-dynamic-binary-instrumentation-tool.html), a Dynamic Binary Instrumentation (DBI) engine published by Intel. It operates as a Pin plugin.
@@ -9,38 +8,37 @@ This repository is a code coverage tool that utilizes [Pin](https://www.intel.co
 # How to use (Quick Start)
 First, clone this repository.
 ```
-git clone git@github.com:simotin13/CodeCoverage.git
+git clone git@github.com:ilmanzo/CodeCoverage.git
 ```
 
 Pin tool itself is required to run the code.
 You can download the Pin tool from the Intel Pin website.
 
 Scripts for downloading, building, and running examples are included in this repository.
-Please start by running `00_setup.sh.`
+Please start by running `build.sh.`
 
 ```
 cd CodeCoverage/
-./00_setup.sh
+./build.sh
 ```
 
-In `00_setup.sh`, Pin 3.27 is downloaded and extracted to the same directory as this repository. Then, the source code in this repository is built.
+In `build.sh`, Pin 3.31 is downloaded and extracted to the same directory as this repository. Then, the source code in this repository is built.
 
 To use the latest version of the pin, download it from the site as needed.
 
 ## Running the coverage tool
 After downloading and building, please run 01_run_example.sh.
 
-In `01_run_example.sh`, a C program included in examples/c_function_call is executed as a coverage measurement target for this coverage tool.
+In `build.sh`, a C program included in example/ is executed as a coverage measurement target for this coverage tool.
 
-After running, the coverage measurement results are output as an HTML file in the `report` folder.
-
+After running, the coverage measurement results are output as a plain text file.
 
 # Build and Execution Commands
 ## Build
 To build this tool, please execute:
 
 ```
-make PIN_ROOT=../pin-3.27-98718-gbeaa5d51e-gcc-linux
+make PIN_ROOT=../pin-external-3.31-98869-gfa6f126a8-gcc-linux
 ```
 
 The convention when building Pin tools is to specify the directory path of the PIN tool with PIN_ROOT.
@@ -49,16 +47,15 @@ The convention when building Pin tools is to specify the directory path of the P
 To run this tool, execute the following command:
 
 ```
-../pin-3.27-98718-gbeaa5d51e-gcc-linux/pin -t ./obj-intel64/CodeCoverage.so -- <target_module_path> <target_args...>
+../pin-external-3.31-98869-gfa6f126a8-gcc-linux/pin -t ./obj-intel64/functrace.so -- <target_module_path> <target_args...>
 ```
 
 where <target_module_path> and <target_args...> are the path and any arguments for the target module you want to measure code coverage for.
 
 # Note
 This coverage tool uses DWARF debugging information to obtain line number information.
-Pin 3.27 supports DWARF4 as debugging information. When building the application for which you want to measure coverage, please build it with the `-g` and `-gdwarf-4` options.
+Pin 3.31 supports DWARF4 as debugging information. When building the application for which you want to measure coverage, please build it with the `-g` and `-gdwarf-4` options.
 
-例).
 ```
 gcc -g -gdwarf-4 main.c
 ```
