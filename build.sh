@@ -13,4 +13,9 @@ pushd example && make && popd
 
 # run code coverage tool
 
-$PIN_ROOT/pin -t ./obj-intel64/functrace.so -- example/cov_sample 1 2
+
+
+$PIN_ROOT/pin -t ./obj-intel64/FuncTracer.so -- example/cov_sample 7 3
+
+
+

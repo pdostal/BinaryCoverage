@@ -37,8 +37,10 @@ After running, the coverage measurement results are output as a plain text file.
 ## Build
 To build this tool, please execute:
 
+export PIN_ROOT=../pin-external-3.31-98869-gfa6f126a8-gcc-linux
+
 ```
-make PIN_ROOT=../pin-external-3.31-98869-gfa6f126a8-gcc-linux
+make
 ```
 
 The convention when building Pin tools is to specify the directory path of the PIN tool with PIN_ROOT.
@@ -47,7 +49,7 @@ The convention when building Pin tools is to specify the directory path of the P
 To run this tool, execute the following command:
 
 ```
-../pin-external-3.31-98869-gfa6f126a8-gcc-linux/pin -t ./obj-intel64/functrace.so -- <target_module_path> <target_args...>
+$PIN_ROOT/pin -t ./obj-intel64/FuncTracer.so -- <target_module_path> <target_args...>
 ```
 
 where <target_module_path> and <target_args...> are the path and any arguments for the target module you want to measure code coverage for.

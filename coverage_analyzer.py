@@ -1,0 +1,230 @@
+#!/usr/bin/env python3
+
+import argparse
+import re
+import os
+from collections import defaultdict
+
+def analyze_logs(log_files):
+    """
+    Parses Intel Pin log files to generate a function call coverage report.
+
+    Args:
+        log_files (list): A list of paths to log files to be analyzed.
+
+    Returns:
+        dict: A dictionary containing the aggregated coverage data.
+              The structure is:
+              {
+                  'image_path': {
+                      'total_functions': set('func1', 'func2', ...),
+                      'called_functions': set('func1', ...)
+                  }
+              }
+    """
+    function_def_re = re.compile(r"\[Image:(?P<image>.*?)\] \[Function:(?P<function>.*?)\]")
+    function_call_re = re.compile(r"\[Image:(?P<image>.*?)\] \[Called:(?P<function>.*?)\]")
+
+    coverage_data = defaultdict(lambda: {"total_functions": set(), "called_functions": set()})
+
+    print(f"--> Processing {len(log_files)} log file(s)...")
+
+    for log_file in log_files:
+        try:
+            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    match_def = function_def_re.search(line)
+                    if match_def:
+                        image = match_def.group('image').strip()
+                        function = match_def.group('function').strip()
+                        if image and function:
+                            coverage_data[image]['total_functions'].add(function)
+                        continue
+
+                    match_call = function_call_re.search(line)
+                    if match_call:
+                        image = match_call.group('image').strip()
+                        function = match_call.group('function').strip()
+                        if image and function:
+                            coverage_data[image]['called_functions'].add(function)
+        except FileNotFoundError:
+            print(f"Warning: Log file not found: {log_file}")
+        except Exception as e:
+            print(f"An error occurred while reading {log_file}: {e}")
+
+    print("--> Processing complete.\n")
+    return coverage_data
+
+def print_report(coverage_data):
+    """
+    Prints a formatted summary report from the analyzed coverage data to the console.
+
+    Args:
+        coverage_data (dict): The aggregated data from analyze_logs.
+    """
+    if not coverage_data:
+        print("No data to report. Please check your log files.")
+        return
+
+    print("--- Cumulative Coverage Report (Console) ---")
+
+    for image, data in sorted(coverage_data.items()):
+        total_count = len(data['total_functions'])
+        called_count = len(data['called_functions'])
+        coverage_percentage = (called_count / total_count) * 100 if total_count > 0 else 0
+
+        print("\n==================================================")
+        print(f"Image: {image}")
+        print("==================================================")
+        print(f"  Functions Found:   {total_count}")
+        print(f"  Functions Called:  {called_count}")
+        print(f"  Coverage:          {coverage_percentage:.2f}%")
+        print("--------------------------------------------------")
+
+        if called_count > 0:
+            print("  Called Functions:")
+            for func in sorted(list(data['called_functions'])):
+                print(f"    - {func}")
+        else:
+            print("  No functions were called for this image.")
+
+    print("\n--- End of Console Report ---")
+
+def generate_html_report(image_name, data, output_dir):
+    """Generates an HTML coverage report for a single image."""
+    # Sanitize the image name to create a valid filename
+    sanitized_name = re.sub(r'[^a-zA-Z0-9._-]', '_', os.path.basename(image_name))
+    output_filename = os.path.join(output_dir, f"coverage_{sanitized_name}.html")
+
+    total_functions = sorted(list(data['total_functions']))
+    called_functions = data['called_functions']
+    uncalled_functions = data['total_functions'] - called_functions
+
+    total_count = len(total_functions)
+    called_count = len(called_functions)
+    uncalled_count = len(uncalled_functions)
+
+    coverage_percentage = (called_count / total_count) * 100 if total_count > 0 else 0
+
+    html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coverage Report for {image_name}</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 2em; background-color: #f9f9f9; color: #333; }}
+        .container {{ max-width: 1200px; margin: auto; background-color: #fff; padding: 2em; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }}
+        h1, h2 {{ color: #1a1a1a; border-bottom: 2px solid #eee; padding-bottom: 0.3em; }}
+        .summary {{ background-color: #f4f4f4; padding: 1.5em; border-radius: 8px; margin-bottom: 2em; border: 1px solid #ddd; }}
+        .summary p {{ margin: 0.5em 0; font-size: 1.1em; }}
+        .summary .percentage {{ font-size: 1.8em; font-weight: bold; color: #0056b3; }}
+        .progress-bar {{ background-color: #e9ecef; border-radius: 50px; overflow: hidden; height: 30px; margin-top: 1em; }}
+        .progress-bar-inner {{ 
+            background-color: #28a745; 
+            height: 100%; 
+            width: {coverage_percentage:.2f}%; 
+            color: white; 
+            text-align: center; 
+            line-height: 30px;
+            font-weight: bold;
+            transition: width 0.5s ease-in-out;
+        }}
+        .function-list {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1em;
+            list-style-type: none;
+            padding: 0;
+        }}
+        .function-list li {{
+            padding: 0.6em;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: transform 0.2s ease;
+        }}
+        .function-list li:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }}
+        .called {{ background-color: #d4edda; color: #155724; border-left: 5px solid #28a745; }}
+        .uncalled {{ background-color: #f8d7da; color: #721c24; border-left: 5px solid #dc3545; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Coverage Report</h1>
+        <h2>Image: {image_name}</h2>
+        
+        <div class="summary">
+            <p><strong>Total Functions:</strong> {total_count}</p>
+            <p><strong>Called Functions:</strong> {called_count}</p>
+            <p><strong>Uncalled Functions:</strong> {uncalled_count}</p>
+            <p class="percentage">Coverage: {coverage_percentage:.2f}%</p>
+            <div class="progress-bar">
+                <div class="progress-bar-inner">{coverage_percentage:.2f}%</div>
+            </div>
+        </div>
+
+        <h2>Function Details</h2>
+        <ul class="function-list">
+    """
+
+    for func in total_functions:
+        status_class = "called" if func in called_functions else "uncalled"
+        html_content += f'<li class="{status_class}" title="{func}">{func}</li>\n'
+    
+    html_content += """
+        </ul>
+    </div>
+</body>
+</html>
+    """
+
+    try:
+        with open(output_filename, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        print(f"    - HTML report saved to {output_filename}")
+    except Exception as e:
+        print(f"Error writing HTML file {output_filename}: {e}")
+
+def main():
+    """Main function to parse arguments and run the analysis."""
+    parser = argparse.ArgumentParser(
+        description="Analyze Intel Pin logs for function call coverage.",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument(
+        'log_files',
+        nargs='+',
+        help='One or more log files to analyze.'
+    )
+    parser.add_argument(
+        '--html-output',
+        metavar='<directory>',
+        type=str,
+        help='Directory to save per-image HTML coverage reports.'
+    )
+    args = parser.parse_args()
+
+    coverage_data = analyze_logs(args.log_files)
+    print_report(coverage_data)
+
+    if args.html_output:
+        output_dir = args.html_output
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            print(f"\n--> Generating HTML reports in '{output_dir}'...")
+            for image, data in sorted(coverage_data.items()):
+                generate_html_report(image, data, output_dir)
+            print("--> HTML generation complete.")
+        except OSError as e:
+            print(f"Error: Could not create HTML output directory '{output_dir}': {e}")
+
+if __name__ == '__main__':
+    main()
+

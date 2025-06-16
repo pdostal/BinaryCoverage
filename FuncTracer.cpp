@@ -1,29 +1,22 @@
-/* functrace.cpp */
+/* FuncTracer.cpp */
 #include "pin.H"
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <unistd.h> // For getpid()
 
-// Global output file stream.
-// We use a KNOB to allow the user to specify the output file name on the command line.
-KNOB<std::string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool",
-    "o", "functrace.out", "specify output file name");
-
-// File stream object
-static std::ofstream TraceFile;
-
 // This function is called before every function in the instrumented application.
 // It logs the process ID, image name, and function name.
 VOID log_function_call(const char *img_name, const char *func_name)
 {
+    // Build the output string
+    std::stringstream ss;
     // Get the process ID
     PIN_LockClient();
     pid_t pid = PIN_GetPid();
     PIN_UnlockClient();
-
-    // Write to the trace file
-    TraceFile << "[PID: " << pid << "] Image: " << img_name << " -> Function: " << func_name << std::endl;
+    ss << "[PID:" << pid << "] [Image:" << img_name << "] [Called:" << func_name << "]\n" ;
+    LOG(ss.str());
 }
 
 // Pin calls this function for every image loaded into the process's address space.
@@ -35,12 +28,15 @@ VOID ImageLoad(IMG img, VOID *v)
     {
         for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
         {
+            std::stringstream ss;
+            RTN_Open(rtn);
+            ss << "[Image:" << IMG_Name(img) << "] [Function:" << RTN_Name(rtn) << "]\n" ;
+            LOG(ss.str());
             // For each routine, we insert a call to our analysis function `log_function_call`.
             // RTN_InsertCall places a call at the beginning of the routine.
             // IARG_ADDRINT: Passes the address of an argument.
             // IARG_PTR: Passes a pointer-sized value. We use it for the image and routine names.
             // IARG_END: Marks the end of arguments.
-            RTN_Open(rtn);
 
             RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)log_function_call,
                            IARG_PTR, IMG_Name(img).c_str(),
@@ -56,17 +52,10 @@ VOID ImageLoad(IMG img, VOID *v)
 // Returning TRUE tells Pin to follow and instrument the child process.
 BOOL FollowChild(CHILD_PROCESS childProcess, VOID *v)
 {
-    TraceFile << "[PID: " << PIN_GetPid() << "] Forking a new process..." << std::endl;
-    TraceFile.flush();
+    //LOG( "New PID: " + decstr(PIN_GetPid()) + "\n");
+    //TraceFile << "[PID: " << PIN_GetPid() << "] Forking a new process..." << std::endl;
+    //TraceFile.flush();
     return TRUE; // Follow the child
-}
-
-// This function is called when the application exits.
-// It's a good place to do cleanup, like closing the log file.
-VOID Fini(INT32 code, VOID *v)
-{
-    TraceFile << "[PID: " << PIN_GetPid() << "] Application finished with code " << code << std::endl;
-    TraceFile.close();
 }
 
 // Pintool entry point
@@ -81,23 +70,11 @@ int main(int argc, char *argv[])
         std::cerr << "PIN_Init failed" << std::endl;
         return 1;
     }
-
-    // Open the output file.
-    TraceFile.open(KnobOutputFile.Value().c_str());
-    if (!TraceFile.is_open())
-    {
-        std::cerr << "Could not open output file: " << KnobOutputFile.Value() << std::endl;
-        return 1;
-    }
-
     // Register the function to be called for every loaded image.
     IMG_AddInstrumentFunction(ImageLoad, 0);
     
-    // Register the function to handle child processes. This is key for tracing forks.
+    // TODO: check if childs are automatically followed or not
     PIN_AddFollowChildProcessFunction(FollowChild, 0);
-
-    // Register the Fini function to be called when the application exits.
-    PIN_AddFiniFunction(Fini, 0);
 
     // Start the program, never returns
     PIN_StartProgram();
