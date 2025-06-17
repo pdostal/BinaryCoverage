@@ -15,7 +15,7 @@ PIN_ROOT=${PIN_ROOT:-} # Let the script check for its existence.
 # Base directory to securely store original binaries
 SAFE_BIN_DIR="/var/coverage/bin"
 # Directory for Pin output logs
-LOG_DIR="/var/coverage_data"
+LOG_DIR="/var/coverage/data"
 # Directory to search for the Pin Tool
 PIN_TOOL_SEARCH_DIR="/var/coverage"
 
