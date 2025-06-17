@@ -1,3 +1,4 @@
+#!/bin/bash
 # download and extract intel pin
 pushd ..
 curl https://software.intel.com/sites/landingpage/pintool/downloads/pin-external-3.31-98869-gfa6f126a8-gcc-linux.tar.gz | tar zxf -

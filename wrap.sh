@@ -116,7 +116,7 @@ nano_seconds=\$(date "+%N")
 log_file="\$LOG_DIR/\${binary_name}_\${timestamp}_\${nano_seconds}.log"
 
 # Execute the original binary with Pin
-exec "\$PIN_ROOT/pin" -t "\$PIN_TOOL" -o "\$log_file" -- "\$ORIGINAL_BINARY" "\$@"
+exec "\$PIN_ROOT/pin" -t "\$PIN_TOOL" -logfile "\$log_file" -- "\$ORIGINAL_BINARY" "\$@"
 WRAPPER_EOF
 
     chmod +x "$target_binary"
@@ -158,14 +158,6 @@ handle_uninstall() {
     echo "--> Cleaning up secure storage directory '$safe_dir'..."
     rmdir "$safe_dir"
     echo "    Done."
-
-    # Cleanup logs
-    local binary_name=$(basename "$target_binary")
-    echo "--> Cleaning up logs in '$LOG_DIR' for '$binary_name'..."
-    # The `|| true` prevents the script from exiting if find returns no files
-    find "$LOG_DIR" -name "${binary_name}_*.log" -print -delete || true
-    echo "    Done."
-
     echo "Uninstall complete for '$target_binary'."
 }
 
