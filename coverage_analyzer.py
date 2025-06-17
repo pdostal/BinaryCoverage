@@ -5,108 +5,9 @@ import re
 import os
 from collections import defaultdict
 
-def analyze_logs(log_files):
-    """
-    Parses Intel Pin log files to generate a function call coverage report.
-
-    Args:
-        log_files (list): A list of paths to log files to be analyzed.
-
-    Returns:
-        dict: A dictionary containing the aggregated coverage data.
-              The structure is:
-              {
-                  'image_path': {
-                      'total_functions': set('func1', 'func2', ...),
-                      'called_functions': set('func1', ...)
-                  }
-              }
-    """
-    function_def_re = re.compile(r"\[Image:(?P<image>.*?)\] \[Function:(?P<function>.*?)\]")
-    function_call_re = re.compile(r"\[Image:(?P<image>.*?)\] \[Called:(?P<function>.*?)\]")
-
-    coverage_data = defaultdict(lambda: {"total_functions": set(), "called_functions": set()})
-
-    print(f"--> Processing {len(log_files)} log file(s)...")
-
-    for log_file in log_files:
-        try:
-            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
-                for line in f:
-                    match_def = function_def_re.search(line)
-                    if match_def:
-                        image = match_def.group('image').strip()
-                        function = match_def.group('function').strip()
-                        if image and function:
-                            coverage_data[image]['total_functions'].add(function)
-                        continue
-
-                    match_call = function_call_re.search(line)
-                    if match_call:
-                        image = match_call.group('image').strip()
-                        function = match_call.group('function').strip()
-                        if image and function:
-                            coverage_data[image]['called_functions'].add(function)
-        except FileNotFoundError:
-            print(f"Warning: Log file not found: {log_file}")
-        except Exception as e:
-            print(f"An error occurred while reading {log_file}: {e}")
-
-    print("--> Processing complete.\n")
-    return coverage_data
-
-def print_report(coverage_data):
-    """
-    Prints a formatted summary report from the analyzed coverage data to the console.
-
-    Args:
-        coverage_data (dict): The aggregated data from analyze_logs.
-    """
-    if not coverage_data:
-        print("No data to report. Please check your log files.")
-        return
-
-    print("--- Cumulative Coverage Report (Console) ---")
-
-    for image, data in sorted(coverage_data.items()):
-        total_count = len(data['total_functions'])
-        called_count = len(data['called_functions'])
-        coverage_percentage = (called_count / total_count) * 100 if total_count > 0 else 0
-
-        print("\n==================================================")
-        print(f"Image: {image}")
-        print("==================================================")
-        print(f"  Functions Found:   {total_count}")
-        print(f"  Functions Called:  {called_count}")
-        print(f"  Coverage:          {coverage_percentage:.2f}%")
-        print("--------------------------------------------------")
-
-        if called_count > 0:
-            print("  Called Functions:")
-            for func in sorted(list(data['called_functions'])):
-                print(f"    - {func}")
-        else:
-            print("  No functions were called for this image.")
-
-    print("\n--- End of Console Report ---")
-
-def generate_html_report(image_name, data, output_dir):
-    """Generates an HTML coverage report for a single image."""
-    # Sanitize the image name to create a valid filename
-    sanitized_name = re.sub(r'[^a-zA-Z0-9._-]', '_', os.path.basename(image_name))
-    output_filename = os.path.join(output_dir, f"coverage_{sanitized_name}.html")
-
-    total_functions = sorted(list(data['total_functions']))
-    called_functions = data['called_functions']
-    uncalled_functions = data['total_functions'] - called_functions
-
-    total_count = len(total_functions)
-    called_count = len(called_functions)
-    uncalled_count = len(uncalled_functions)
-
-    coverage_percentage = (called_count / total_count) * 100 if total_count > 0 else 0
-
-    html_content = f"""
+# --- HTML Template ---
+# Using a template string separates the HTML structure from the Python logic.
+HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -172,18 +73,118 @@ def generate_html_report(image_name, data, output_dir):
 
         <h2>Function Details</h2>
         <ul class="function-list">
-    """
-
-    for func in total_functions:
-        status_class = "called" if func in called_functions else "uncalled"
-        html_content += f'<li class="{status_class}" title="{func}">{func}</li>\n'
-    
-    html_content += """
+            {function_list_html}
         </ul>
     </div>
 </body>
 </html>
+"""
+
+def analyze_logs(log_files):
     """
+    Parses Intel Pin log files to generate a function call coverage report.
+    """
+    function_def_re = re.compile(r"\[Image:(?P<image>.*?)\] \[Function:(?P<function>.*?)\]")
+    function_call_re = re.compile(r"\[Image:(?P<image>.*?)\] \[Called:(?P<function>.*?)\]")
+
+    coverage_data = defaultdict(lambda: {"total_functions": set(), "called_functions": set()})
+
+    print(f"--> Processing {len(log_files)} log file(s)...")
+
+    for log_file in log_files:
+        try:
+            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    match_def = function_def_re.search(line)
+                    if match_def:
+                        image = match_def.group('image').strip()
+                        function = match_def.group('function').strip()
+                        if image and function:
+                            coverage_data[image]['total_functions'].add(function)
+                        continue
+
+                    match_call = function_call_re.search(line)
+                    if match_call:
+                        image = match_call.group('image').strip()
+                        function = match_call.group('function').strip()
+                        if image and function:
+                            coverage_data[image]['called_functions'].add(function)
+        except FileNotFoundError:
+            print(f"Warning: Log file not found: {log_file}")
+        except Exception as e:
+            print(f"An error occurred while reading {log_file}: {e}")
+
+    print("--> Processing complete.\n")
+    return coverage_data
+
+def print_report(coverage_data):
+    """
+    Prints a formatted summary report from the analyzed coverage data to the console.
+    """
+    if not coverage_data:
+        print("No data to report. Please check your log files.")
+        return
+
+    for image, data in sorted(coverage_data.items()):
+        total_functions = data['total_functions']
+        called_functions = data['called_functions']
+        uncalled_functions = sorted(list(total_functions - called_functions))
+
+        total_count = len(total_functions)
+        called_count = len(called_functions)
+        coverage_percentage = (called_count / total_count) * 100 if total_count > 0 else 0
+
+        print("\n==================================================")
+        print(f"Image: {image}")
+        print("==================================================")
+        print(f"  Functions Found:   {total_count}")
+        print(f"  Functions Called:  {called_count}")
+        print(f"  Coverage:          {coverage_percentage:.2f}%")
+        print("--------------------------------------------------")
+
+        if called_count > 0:
+            print("  Called Functions:")
+            for func in sorted(list(called_functions)):
+                print(f"    - {func}")
+        else:
+            print("  No functions were called for this image.")
+        
+        if uncalled_functions:
+            print("\n  Uncalled Functions:")
+            for func in uncalled_functions:
+                print(f"    - {func}")
+
+    print("\n--- End of Console Report ---")
+
+def generate_html_report(image_name, data, output_dir):
+    """Generates an HTML coverage report for a single image using a template."""
+    sanitized_name = re.sub(r'[^a-zA-Z0-9._-]', '_', os.path.basename(image_name))
+    output_filename = os.path.join(output_dir, f"coverage_{sanitized_name}.html")
+
+    total_functions = sorted(list(data['total_functions']))
+    called_functions = data['called_functions']
+    
+    total_count = len(total_functions)
+    called_count = len(called_functions)
+    uncalled_count = total_count - called_count
+    coverage_percentage = (called_count / total_count) * 100 if total_count > 0 else 0
+
+    # Generate the HTML for the list of functions
+    function_items = []
+    for func in total_functions:
+        status_class = "called" if func in called_functions else "uncalled"
+        function_items.append(f'<li class="{status_class}" title="{func}">{func}</li>')
+    function_list_html = "\n".join(function_items)
+
+    # Populate the main HTML template
+    html_content = HTML_TEMPLATE.format(
+        image_name=image_name,
+        total_count=total_count,
+        called_count=called_count,
+        uncalled_count=uncalled_count,
+        coverage_percentage=coverage_percentage,
+        function_list_html=function_list_html
+    )
 
     try:
         with open(output_filename, 'w', encoding='utf-8') as f:
@@ -227,4 +228,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
