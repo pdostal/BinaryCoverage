@@ -9,7 +9,7 @@
 PIN_ROOT=${PIN_ROOT:-/path/to/your/pin/root}
 
 # The Pin tool to be used for instrumentation.
-PIN_TOOL="$PIN_ROOT/source/tools/ManualExamples/obj-intel64/FuncTracer.so"
+PIN_TOOL="/var/coverage/BinaryCoverage-main/obj-intel64/FuncTracer.so"
 
 # --- Directories ---
 # Directory to store the copies of the original binaries.
@@ -38,17 +38,13 @@ handle_undo() {
   binary_name=$(basename "$binary_path")
 
   echo "--> Performing cleanup for '$binary_name'..."
-  echo "    This will remove saved program copies and their corresponding logs."
+
+  
 
   # Remove saved binary copies
   echo "--> Deleting saved binary copies from '$PROGRAM_SAVE_DIR':"
   # Use find to safely print and delete files. It won't error if no files are found.
   find "$PROGRAM_SAVE_DIR" -name "$binary_name.*" -print -delete
-  echo "    Done."
-
-  # Remove log files
-  echo "--> Deleting log files from '$LOG_DIR':"
-  find "$LOG_DIR" -name "${binary_name}_*.log" -print -delete
   echo "    Done."
 
   echo "--> Cleanup for '$binary_name' complete."
@@ -116,6 +112,7 @@ TMP_BINARY_PATH=$(mktemp "$PROGRAM_SAVE_DIR/$BINARY_NAME.XXXXXX")
 cp "$BINARY_PATH" "$TMP_BINARY_PATH"
 # The saved binary path is now the temporary file path. This is our secure copy.
 SAVED_BINARY_PATH="$TMP_BINARY_PATH"
+chmod +x $SAVED_BINARY_PATH
 echo "    Binary saved to: $SAVED_BINARY_PATH"
 
 # 6. Prepare for Pin execution and logging
@@ -143,10 +140,10 @@ if [ ! -f "$PIN_TOOL" ]; then
 fi
 
 # 7. Run the original binary with Pin instrumentation
-echo "--> Running binary with Pin..."
+echo "--> Wrapping binary with Pin..."
 # The -- separates the arguments for Pin from the arguments for the target binary.
 # "$@" passes all the remaining arguments to the wrapped binary.
-"$PIN_ROOT/pin" -t "$PIN_TOOL" -o "$LOG_FILE" -- "$SAVED_BINARY_PATH" "$@"
+echo "exec $PIN_ROOT/pin" -t "$PIN_TOOL" -logfile "$LOG_FILE" -- "$SAVED_BINARY_PATH" "$@" > $BINARY_PATH
 
 echo "--> Execution finished."
 echo "    Log saved to: $LOG_FILE"
