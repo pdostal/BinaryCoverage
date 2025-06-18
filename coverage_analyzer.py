@@ -60,8 +60,7 @@ HTML_TEMPLATE = """
     <div class="container">
         <h1>Coverage Report</h1>
         <h2>Image: {image_name}</h2>
-        
-        <div class="summary">
+            <div class="summary">
             <p><strong>Total Functions:</strong> {total_count}</p>
             <p><strong>Called Functions:</strong> {called_count}</p>
             <p><strong>Uncalled Functions:</strong> {uncalled_count}</p>
@@ -70,11 +69,12 @@ HTML_TEMPLATE = """
                 <div class="progress-bar-inner">{coverage_percentage:.2f}%</div>
             </div>
         </div>
-
-        <h2>Function Details</h2>
+        <details>
+        <summary><h2>Function Details</h2></summary>
         <ul class="function-list">
             {function_list_html}
         </ul>
+        </details>
     </div>
 </body>
 </html>
@@ -178,7 +178,7 @@ def generate_html_report(image_name, data, output_dir):
 
     # Populate the main HTML template
     html_content = HTML_TEMPLATE.format(
-        image_name=image_name,
+        image_name=sanitized_name,
         total_count=total_count,
         called_count=called_count,
         uncalled_count=uncalled_count,
