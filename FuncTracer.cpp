@@ -19,6 +19,20 @@ VOID log_function_call(const char *img_name, const char *func_name)
     LOG(ss.str());
 }
 
+bool isBlacklisted(const std::string &func_name)
+{
+    // Check if the function name ends with '@plt'
+    if (func_name.size() >= 4 && func_name.compare(func_name.size() - 4, 4, "@plt") == 0) return true; // Skip PLT entries
+    // Check if the function name starts with '__'
+    // if (func_name.size() >= 2 && func_name.compare(0, 2, "__") == 0) return true; // Skip internal functions
+
+    // Check if the function name is in the blacklist
+    static const std::set<std::string> blacklist = {
+        "main", "_init", "_start"
+    };
+    return blacklist.find(func_name) != blacklist.end();
+}
+
 // Pin calls this function for every image loaded into the process's address space.
 // An image is either an executable or a shared library.
 VOID ImageLoad(IMG img, VOID *v)
@@ -31,6 +45,7 @@ VOID ImageLoad(IMG img, VOID *v)
         if (SEC_Type(sec)!=SEC_TYPE_EXEC) continue; // Only instrument executable sections
         for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
         {
+            if isBlacklisted(RTN_Name(rtn)) continue; // Skip blacklisted functions
             std::stringstream ss;
             RTN_Open(rtn);
             // We log the image name and function name so we can see which function is being instrumented.
