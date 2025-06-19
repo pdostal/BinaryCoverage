@@ -23,13 +23,17 @@ VOID log_function_call(const char *img_name, const char *func_name)
 // An image is either an executable or a shared library.
 VOID ImageLoad(IMG img, VOID *v)
 {
-    // We iterate through all the routines (functions) in the image.
+    // We iterate through all the sections of the image.
     for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
     {
+        LOG("[Image:" + IMG_Name(img) + "] [Section:" + SEC_Name(sec) + "]\n");
+        // We iterate through all the routines (functions) in the image.
+        if (SEC_Type(sec)!=SEC_EXEC) continue; // Only instrument executable sections
         for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
         {
             std::stringstream ss;
             RTN_Open(rtn);
+            // We log the image name and function name so we can see which function is being instrumented.
             ss << "[Image:" << IMG_Name(img) << "] [Function:" << RTN_Name(rtn) << "]\n" ;
             LOG(ss.str());
             // For each routine, we insert a call to our analysis function `log_function_call`.
