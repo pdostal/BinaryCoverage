@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <set
+#include <set>
 #include <unistd.h> // For getpid()
 
 // This function is called before every function in the instrumented application.
