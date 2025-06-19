@@ -46,7 +46,8 @@ VOID ImageLoad(IMG img, VOID *v)
         if (SEC_Type(sec)!=SEC_TYPE_EXEC) continue; // Only instrument executable sections
         for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
         {
-            if isBlacklisted(RTN_Name(rtn)) continue; // Skip blacklisted functions
+            const std::string &rtn_name = RTN_Name(rtn);
+            if (isBlacklisted(rtn_name)) continue; // Skip blacklisted functions
             std::stringstream ss;
             RTN_Open(rtn);
             // We log the image name and function name so we can see which function is being instrumented.
@@ -60,7 +61,7 @@ VOID ImageLoad(IMG img, VOID *v)
 
             RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)log_function_call,
                            IARG_PTR, IMG_Name(img).c_str(),
-                           IARG_PTR, RTN_Name(rtn).c_str(),
+                           IARG_PTR, rtn_name.c_str(),
                            IARG_END);
 
             RTN_Close(rtn);
