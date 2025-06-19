@@ -28,7 +28,7 @@ VOID ImageLoad(IMG img, VOID *v)
     {
         LOG("[Image:" + IMG_Name(img) + "] [Section:" + SEC_Name(sec) + "]\n");
         // We iterate through all the routines (functions) in the image.
-        if (SEC_Type(sec)!=SEC_EXEC) continue; // Only instrument executable sections
+        if (SEC_Type(sec)!=SEC_TYPE_EXEC) continue; // Only instrument executable sections
         for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
         {
             std::stringstream ss;
