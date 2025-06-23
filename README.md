@@ -72,5 +72,6 @@ gcc -g -gdwarf-4 main.c
 # Run unit tests
 
 ```
-python3 test_coverage_analyzer.py
+cd tests
+./run_unit_tests.sh
 ```
