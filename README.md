@@ -5,6 +5,12 @@ This repository is a code coverage tool that utilizes [Pin](https://www.intel.co
 # Supported Platforms
 - GNU/Linux
 
+# Requisites:
+- an x86_64 processor (doesn't work on other arch)
+- make
+- g++ 14 (15 doesn't work yet)
+- Catch2 if you want to run the c++ testsuite : `zypper install Catch2-2-devel` 
+
 # How to use (Quick Start)
 First, clone this repository.
 ```
@@ -60,4 +66,11 @@ Pin 3.31 supports DWARF4 as debugging information. When building the application
 
 ```
 gcc -g -gdwarf-4 main.c
+```
+
+
+# Run unit tests
+
+```
+python3 test_coverage_analyzer.py
 ```
