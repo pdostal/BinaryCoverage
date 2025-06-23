@@ -71,6 +71,14 @@ HTML_TEMPLATE = """
         </div>
         <details>
         <summary><h2>Function Details</h2></summary>
+        <!-- insert html legend here -->
+        <p><strong>Legend:</strong></p>
+        <ul>
+            <li class="called">Called Function</li>
+            <li class="uncalled">Uncalled Function</li>
+        </ul>
+        <!-- end html legend -->
+        <p>List of functions found in the log file:</p>
         <ul class="function-list">
             {function_list_html}
         </ul>
