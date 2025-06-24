@@ -3,7 +3,6 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <cstring>
 #include <set>
 #include <unistd.h> // For getpid()
 
@@ -47,7 +46,7 @@ VOID ImageLoad(IMG img, VOID *v)
         for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
         {
             const std::string rtn_name = RTN_Name(rtn);
- //           if (isBlacklisted(strdup(rtn_name.c_str()))) continue; // Skip blacklisted functions
+ //           if (isBlacklisted(rtn_name.c_str())) continue; // Skip blacklisted functions
             std::stringstream ss;
             RTN_Open(rtn);
             // We log the image name and function name so we can see which function is being instrumented.
@@ -59,8 +58,8 @@ VOID ImageLoad(IMG img, VOID *v)
             // IARG_PTR: Passes a pointer-sized value. We use it for the image and routine names.
             // IARG_END: Marks the end of arguments.
             RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)log_function_call,
-               IARG_PTR, strdup(IMG_Name(img).c_str()),
-               IARG_PTR, strdup(rtn_name.c_str()),
+               IARG_PTR, IMG_Name(img).c_str(),
+               IARG_PTR, rtn_name.c_str(),
                IARG_END);
 
             RTN_Close(rtn);
