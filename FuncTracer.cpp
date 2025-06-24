@@ -12,8 +12,13 @@ static std::mutex log_mutex;
 
 // This function is called before every function in the instrumented application.
 // It logs the process ID, image name, and function name.
-VOID log_function_call(const char *img_name, const char *func_name)
+// Update the analysis function signature:
+VOID log_function_call(ADDRINT img_name_ptr, ADDRINT func_name_ptr)
 {
+    const char* img_name = reinterpret_cast<const char*>(img_name_ptr);
+    const char* func_name = reinterpret_cast<const char*>(func_name_ptr);
+
+    // TODO not working yet
     std::string key = std::string(img_name) + ":" + std::string(func_name);
     {
         std::lock_guard<std::mutex> guard(log_mutex);
@@ -22,18 +27,19 @@ VOID log_function_call(const char *img_name, const char *func_name)
         logged_functions.insert(key);
     }
 
-    // Build the output string
     std::stringstream ss;
-    // Get the process ID
     PIN_LockClient();
     pid_t pid = PIN_GetPid();
     PIN_UnlockClient();
-    ss << "[PID:" << pid << "] [Image:" << img_name << "] [Called:" << func_name << "]\n" ;
+    ss << "[PID:" << pid << "] [Image:" << img_name << "] [Called:" << func_name << "]\n";
     LOG(ss.str());
 }
 
-bool isBlacklisted(const std::string &func_name)
+bool isBlacklisted(const std::string func_name)
 {
+    //std::string msg = "blacklist_check:" + func_name + "\n";
+    //LOG(msg);
+
     if (func_name.length() >= 4 && func_name.compare(func_name.length() - 4, 4, "@plt") == 0) return true; // Skip PLT entries
     if (func_name.length() >= 2 && func_name.compare(0, 2, "__") == 0) return true; // Skip internal functions starting with "__"
     // Check if the function name is in the blacklist
@@ -55,7 +61,7 @@ VOID ImageLoad(IMG img, VOID *v)
         if (SEC_Type(sec)!=SEC_TYPE_EXEC) continue; // Only instrument executable sections
         for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
         {
-            const std::string &rtn_name = RTN_Name(rtn);
+            const std::string rtn_name = RTN_Name(rtn);
             if (isBlacklisted(rtn_name)) continue; // Skip blacklisted functions
             std::stringstream ss;
             RTN_Open(rtn);
@@ -67,11 +73,10 @@ VOID ImageLoad(IMG img, VOID *v)
             // IARG_ADDRINT: Passes the address of an argument.
             // IARG_PTR: Passes a pointer-sized value. We use it for the image and routine names.
             // IARG_END: Marks the end of arguments.
-
             RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)log_function_call,
-                           IARG_PTR, IMG_Name(img).c_str(),
-                           IARG_PTR, rtn_name.c_str(),
-                           IARG_END);
+               IARG_ADDRINT, (ADDRINT)IMG_Name(img).c_str(),
+               IARG_ADDRINT, (ADDRINT)rtn_name.c_str(),
+               IARG_END);
 
             RTN_Close(rtn);
         }
@@ -91,6 +96,7 @@ BOOL FollowChild(CHILD_PROCESS childProcess, VOID *v)
 // Pintool entry point
 int main(int argc, char *argv[])
 {
+
     // Initialize PIN symbols. This is required for routine-level instrumentation.
     PIN_InitSymbols();
 
