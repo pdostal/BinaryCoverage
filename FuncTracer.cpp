@@ -6,10 +6,22 @@
 #include <set>
 #include <unistd.h> // For getpid()
 
+// Global set and mutex to track logged functions
+static std::set<std::string> logged_functions;
+static std::mutex log_mutex;
+
 // This function is called before every function in the instrumented application.
 // It logs the process ID, image name, and function name.
 VOID log_function_call(const char *img_name, const char *func_name)
 {
+    std::string key = std::string(img_name) + ":" + std::string(func_name);
+    {
+        std::lock_guard<std::mutex> guard(log_mutex);
+        if (logged_functions.find(key) != logged_functions.end())
+            return; // Already logged, skip
+        logged_functions.insert(key);
+    }
+
     // Build the output string
     std::stringstream ss;
     // Get the process ID
