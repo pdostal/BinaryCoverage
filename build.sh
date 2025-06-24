@@ -16,6 +16,7 @@ fi
 export PIN_ROOT=$(realpath `ls -d pin*`)
 popd
 # builds the custom library (pintool)
+export CXX=/usr/bin/g++-14
 make
 echo "export PIN_ROOT=$PIN_ROOT" > env
 # build code coverage target example
