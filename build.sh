@@ -5,6 +5,9 @@ PIN_ARCHIVE="pin-external-3.31-98869-gfa6f126a8-gcc-linux"
 PIN_URL="https://software.intel.com/sites/landingpage/pintool/downloads/${PIN_ARCHIVE}.tar.gz"
 REQUIRED_GCC=14
 
+CXX=""
+GPP_VERSION=""
+
 if command -v g++-14 &>/dev/null; then
     CXX=$(command -v g++-14)
 else
@@ -38,7 +41,7 @@ fi
 PIN_ROOT=$(realpath `ls -d pin*`)
 export PIN_ROOT
 popd > /dev/null
-export CXX="$CXX"
+export CXX="$CXX -std=c++20"
 make
 echo "export PIN_ROOT=\"$PIN_ROOT\"" > env
 
