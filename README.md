@@ -14,7 +14,7 @@ This repository is a code coverage tool that utilizes [Pin](https://www.intel.co
 # How to use (Quick Start)
 First, clone this repository.
 ```
-git clone git@github.com:ilmanzo/CodeCoverage.git
+git clone git@github.com:ilmanzo/BinaryCoverage.git
 ```
 
 Pin tool itself is required to run the code.
@@ -24,7 +24,7 @@ Scripts for downloading, building, and running examples are included in this rep
 Please start by running `build.sh.`
 
 ```
-cd CodeCoverage/
+cd BinaryCoverage/
 ./build.sh
 ```
 
